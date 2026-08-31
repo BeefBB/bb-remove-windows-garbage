@@ -2,6 +2,7 @@ import sys
 import subprocess
 import ctypes
 import json
+import time
 
 
 APPS = [
@@ -299,6 +300,18 @@ if __name__ == "__main__":
                 break
 
             print("無效的輸入")
+
+    else:
+
+        print()
+        print("目前非系統管理員權限, 僅可為目前使用者移除套件")
+        print("以系統管理員權限以解鎖以下功能:")
+        print(" - 為所有使用者移除套件")
+        print(" - 從系統預裝套件移除")
+        print(" - 取消自動Windows服務")
+        print()
+
+        time.sleep(3)
 
 
     if mode != "5":
