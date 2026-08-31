@@ -191,7 +191,7 @@ def remove_app(package: str, all_users: bool=False):
     user = " -AllUsers" if all_users else ""
 
     powershell_cmd = f"Get-AppxPackage{user} '{package}' | Remove-AppxPackage{user}"
-    
+
     return subprocess.run(
         [
             "powershell", "-NoProfile", "-Command",
@@ -212,7 +212,7 @@ def remove_app_from_pre_installed_packages(package: str):
         f"Where-Object {{ $_.DisplayName -eq '{package}' -or $_.PackageName -like '*{package}*' }} | "
         "Remove-AppxProvisionedPackage -Online"
     )
-    
+
     return subprocess.run(
         [
             "powershell", "-NoProfile", "-Command",
@@ -315,11 +315,13 @@ if __name__ == "__main__":
 
 
     if mode != "5":
+
         print("掃描系統已安裝的 Appx 套件...")
 
         installed_packages = get_installed_packages()
 
         if not installed_packages:
+
             print("無法取得已安裝套件清單")
             print("結束")
             sys.exit()
@@ -385,13 +387,13 @@ if __name__ == "__main__":
 
         services_now = get_services()
 
-        
+
         for service_name, display_name, evaluation in SERVICES:
 
             if service_name.lower() not in services_now:
                 print(f"未發現服務: {service_name}")
 
-        
+
         for service_name, display_name, evaluation in SERVICES:
 
             if service_name.lower() not in services_now:
