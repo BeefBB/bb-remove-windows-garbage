@@ -277,8 +277,11 @@ def get_services() -> dict:
     if result.returncode != 0 or not result.stdout.strip():
         return {}
 
+
     try:
+
         data = json.loads(result.stdout)
+
         # 若系統只有 1 個服務, ConvertTo-Json 會回傳 dict, 需轉為 list
         if isinstance(data, dict):
             data = [data]
@@ -286,6 +289,7 @@ def get_services() -> dict:
         return {d["Name"].lower(): d for d in data if "Name" in d}
 
     except json.JSONDecodeError:
+
         return {}
 
 
@@ -411,6 +415,7 @@ if __name__ == "__main__":
 
 
     if mode != "0":
+
         print()
         print("取消自動Windows服務")
 
@@ -427,7 +432,7 @@ if __name__ == "__main__":
             if services_now[service_name.lower()]["StartMode"] == "Manual":
                 print(f"已經為手動: {display_name}")
 
-            if services_now[service_name.lower()]["StartMode"] == "Disabled":
+            elif services_now[service_name.lower()]["StartMode"] == "Disabled":
                 print(f"已經為停用: {display_name}")
 
 
