@@ -119,7 +119,7 @@ APPS = [
 SERVICES = [
 
     # (service_name, display_name, evaluation)
-    # startup_type: Manual / Disabled / Automatic
+    # startup_type: Manual / Disabled / Auto / Automatic
 
     ("DiagTrack", "Connected User Experiences and Telemetry (追蹤診斷)", "垃圾"),
     ("sysmain", "SysMain (Superfetch)", "留著好"),
@@ -129,7 +129,6 @@ SERVICES = [
     ("XblGameSave", "Xbox Live 存檔存儲服務", "垃圾"),
     ("XboxNetApiSvc", "Xbox Live 網路服務", "垃圾"),
     ("RemoteRegistry", "遠端登錄", "用不到"),
-
     ("WerSvc", "Windows Error Reporting (錯誤報告)", "垃圾"),
     ("PcaSvc", "Program Compatibility Assistant (相容性助理)", "用不到"),
     ("lfsvc", "Geolocation Service (地理位置服務)", "留著好"),
@@ -137,6 +136,19 @@ SERVICES = [
     ("TouchKeyboardHandwriting", "Touch Keyboard and Handwriting Panel (觸控與手寫面板)", "桌機用不到"),
     ("SSDPSRV", "SSDP Discovery (UPnP 裝置搜尋)", "用不到"),
     ("lmhosts", "TCP/IP NetBIOS Helper (舊版網路名稱解析)", "用不到"),
+    ("InventorySvc", "清查與相容性評估服務 (蒐集電腦硬體與軟體相容性資料)", "垃圾"),
+    ("PeerDistSvc", "BranchCache (區網快取服務)", "用不到"),
+    ("CscService", "Offline Files (離線檔案同步)", "用不到"),
+    ("RetailDemo", "零售示範服務 (展示機專用)", "垃圾"),
+    ("PhoneSvc", "Phone Service (手機連線相關服務)", "用不到"),
+    ("SmsRouter", "Microsoft Windows SMS 路由器服務", "用不到"),
+    ("SensorService", "Sensor Service (光線/旋轉感應器)", "用不到"),
+    ("SensrSvc", "Sensor Monitoring Service (感應器監控)", "用不到"),
+    ("SensorDataService", "Sensor Data Service (感應器資料)", "用不到"),
+    ("perceptionsimulation", "Windows 感知模擬服務 (VR/MR 相關)", "用不到"),
+    ("SCardSvr", "Smart Card (晶片金融卡/外接讀卡機)", "沒在用讀卡機用不到"),
+    ("ScDeviceEnum", "Smart Card Device Enumeration Service", "用不到"),
+    ("edgeupdate", "Microsoft Edge Update Service", "若不用 Edge 可停用"),
 
 ]
 
@@ -415,7 +427,7 @@ if __name__ == "__main__":
                 continue
 
 
-            if services_now[service_name.lower()]["StartMode"] != "Auto":
+            if services_now[service_name.lower()]["StartMode"] not in {"Auto", "Automatic"}:
                 continue
 
 
