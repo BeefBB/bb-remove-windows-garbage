@@ -34,7 +34,7 @@ APPS = [
     ("Microsoft.XboxApp", "Xbox", "留著好"),
     ("Microsoft.XboxGamingOverlay", "Xbox Game Bar", "留著好"),
     ("Microsoft.XboxGameOverlay", "Xbox 遊戲覆蓋", "留著好"),
-    ("Microsoft.XboxIdentityProvider", "Xbox 身分識別提供者", "垃圾"),
+    ("Microsoft.XboxIdentityProvider", "Xbox 身分識別提供者", "留著好"),
     ("Microsoft.XboxSpeechToTextOverlay", "Xbox 語音轉文字覆蓋", "垃圾"),
     ("Microsoft.Xbox.TCUI", "Xbox TCUI", "垃圾"),
     ("Microsoft.XboxGameCallableUI", "Xbox 遊戲介面", "留著好"),
@@ -122,7 +122,7 @@ SERVICES = [
     # startup_type: Manual / Disabled / Automatic
 
     ("DiagTrack", "Connected User Experiences and Telemetry (追蹤診斷)", "垃圾"),
-    ("sysmain", "SysMain (Superfetch)", "用不到"),
+    ("sysmain", "SysMain (Superfetch)", "留著好"),
     ("dmwappushservice", "WAP 撥號介面訊息轉接服務 (蒐集數據用)", "垃圾"),
     ("MapsBroker", "Downloaded Maps Manager (地圖服務)", "垃圾"),
     ("XblAuthManager", "Xbox Live 身份驗證服務", "垃圾"),
