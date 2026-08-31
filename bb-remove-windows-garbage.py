@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import ctypes
+import json
 
 
 APPS = [
@@ -114,6 +115,23 @@ APPS = [
 ]
 
 
+SERVICES = [
+
+    # (service_name, display_name, evaluation)
+    # startup_type: Manual / Disabled / Automatic
+
+    ("DiagTrack", "Connected User Experiences and Telemetry (追蹤診斷)", "垃圾"),
+    ("sysmain", "SysMain (Superfetch)", "用不到"),
+    ("dmwappushservice", "WAP 撥號介面訊息轉接服務 (蒐集數據用)", "垃圾"),
+    ("MapsBroker", "Downloaded Maps Manager (地圖服務)", "垃圾"),
+    ("XblAuthManager", "Xbox Live 身份驗證服務", "垃圾"),
+    ("XblGameSave", "Xbox Live 存檔存儲服務", "垃圾"),
+    ("XboxNetApiSvc", "Xbox Live 網路服務", "垃圾"),
+    ("RemoteRegistry", "遠端登錄", "用不到"),
+
+]
+
+
 def is_admin() -> bool:
     """
     檢查目前是否系統管理員權限
@@ -121,26 +139,23 @@ def is_admin() -> bool:
 
     try:
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
-    
+
     except Exception:
         return False
 
 
-def ask_yes_no(name: str, evaluation: str="", default: bool=False) -> bool:
+def ask_yes_no(name: str, evaluation: str="", action_text="") -> bool:
     """
     詢問是否刪除
     """
 
     evaluation_text = f" ({evaluation})" if evaluation else ""
-    default_text = "Y / n" if default else "y / N"
 
+    print()
     value = input(
-        f"移除: {name}{evaluation_text} ( {default_text} )\n"
+        f"{action_text}: {name}{evaluation_text} ( y / N )\n"
         " > "
     ).strip().lower()
-
-    if not value:
-        return default
 
     return value == "y"
 
@@ -167,9 +182,107 @@ def get_installed_packages() -> set[str]:
     return {line.strip().lower() for line in result.stdout.splitlines() if line.strip()}
 
 
+def remove_app(package: str, all_users: bool=False):
+    """
+    移除套件
+    """
+
+    user = " -AllUsers" if all_users else ""
+
+    powershell_cmd = f"Get-AppxPackage{user} '{package}' | Remove-AppxPackage{user}"
+    
+    return subprocess.run(
+        [
+            "powershell", "-NoProfile", "-Command",
+            powershell_cmd
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def remove_app_from_pre_installed_packages(package: str):
+    """
+    從系統預裝套件移除
+    """
+
+    powershell_cmd = (
+        f"Get-AppxProvisionedPackage -Online | "
+        f"Where-Object {{ $_.DisplayName -eq '{package}' -or $_.PackageName -like '*{package}*' }} | "
+        "Remove-AppxProvisionedPackage -Online"
+    )
+    
+    return subprocess.run(
+        [
+            "powershell", "-NoProfile", "-Command",
+            powershell_cmd
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def get_services() -> dict:
+    """
+    取得所有 Windows 服務資訊
+
+    Return:
+        Name: Name, DisplayName, State, StartMode
+    """
+
+    powershell_cmd = (
+        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+        "Get-CimInstance Win32_Service | Select-Object Name, DisplayName, State, StartMode | ConvertTo-Json -Compress"
+    )
+
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", powershell_cmd],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+    if result.returncode != 0 or not result.stdout.strip():
+        return {}
+
+    try:
+        data = json.loads(result.stdout)
+        # 若系統只有 1 個服務, ConvertTo-Json 會回傳 dict, 需轉為 list
+        if isinstance(data, dict):
+            data = [data]
+
+        return {d["Name"].lower(): d for d in data if "Name" in d}
+
+    except json.JSONDecodeError:
+        return {}
+
+
+def set_service_startup(service_name: str, startup_type: str):
+    """
+    修改服務啟動類型 (Manual / Disabled / Automatic)
+    """
+
+    powershell_cmd = (
+        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+        f"Set-Service -Name '{service_name}' -StartupType {startup_type} -ErrorAction Stop"
+    )
+
+    return subprocess.run(
+        [
+            "powershell", "-NoProfile", "-Command",
+            powershell_cmd
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
 if __name__ == "__main__":
 
-    mode = "1"
+    mode = "0"
 
     if is_admin():
 
@@ -178,88 +291,116 @@ if __name__ == "__main__":
         print("輸入 (2) 為所有使用者移除套件")
         print("輸入 (3) 移除套件, 且從系統預裝套件移除")
         print("輸入 (4) 為所有使用者移除套件, 且從系統預裝套件移除")
+        print("輸入 (5) 跳至下一步, 取消自動Windows服務")
 
         while True:
             mode = input(" > ").strip()
-            if mode in {"1", "2", "3", "4"}:
+            if mode in {"1", "2", "3", "4", "5"}:
                 break
 
             print("無效的輸入")
 
 
-    print("掃描系統已安裝的 Appx 套件...")
+    if mode != "5":
+        print("掃描系統已安裝的 Appx 套件...")
 
-    installed_packages = get_installed_packages()
+        installed_packages = get_installed_packages()
 
-    if not installed_packages:
-        print("無法取得已安裝套件清單")
-        print("結束")
-        sys.exit()
+        if not installed_packages:
+            print("無法取得已安裝套件清單")
+            print("結束")
+            sys.exit()
 
-    print(f"掃描完成, 共找到 {len(installed_packages)} 個套件")
-    print()
-
-
-    # 為了把未安裝全放前面
-    for package, name, evaluation in APPS:
-
-        if package.lower() not in installed_packages:
-            print(f"未安裝: {name}")
+        print(f"掃描完成, 共找到 {len(installed_packages)} 個套件")
+        print()
 
 
-    for package, name, evaluation in APPS:
+        # 為了把未安裝全放前面
+        for package, name, evaluation in APPS:
 
-        if package.lower() not in installed_packages:
-            continue
+            if package.lower() not in installed_packages:
+                print(f"未安裝: {name}")
+
+
+        for package, name, evaluation in APPS:
+
+            if package.lower() not in installed_packages:
+                continue
+
+
+            if not ask_yes_no(name, evaluation, "移除"):
+                continue
+
+
+            if mode in {"0", "1", "3"}:
+                result = remove_app(package, False)
+
+            else:
+                result = remove_app(package, True)
+
+
+            if result.returncode == 0:
+                print(f"已移除: {name}")
+
+            else:
+                print(f"移除失敗: {name}")
+                if result.stderr.strip():
+                    print(f" > {result.stderr.strip()}")
+
+
+            if mode in {"3", "4"}:
+
+                result = remove_app_from_pre_installed_packages(package)
+
+                if result.returncode == 0:
+                    print(f"已從預裝清單移除: {name}")
+
+                else:
+                    print(f"從預裝清單移除失敗: {name}")
+                    if result.stderr.strip():
+                        print(f" > {result.stderr.strip()}")
 
 
         print()
-
-        if not ask_yes_no(name, evaluation):
-            continue
-
-        if mode in {"1", "3"}:
-            powershell_cmd = f"Get-AppxPackage '{package}' | Remove-AppxPackage"
-
-        else:
-            powershell_cmd = f"Get-AppxPackage -AllUsers '{package}' | Remove-AppxPackage -AllUsers"
-
-        result = subprocess.run(
-            [
-                "powershell", "-NoProfile", "-Command",
-                powershell_cmd,
-            ],
-            capture_output=True,
-            text=True,
-        )
-
-        if result.returncode == 0:
-            print(f"已移除: {name}")
-
-        else:
-            print(f"移除失敗: {name}")
-            if result.stderr.strip():
-                print(f" > {result.stderr.strip()}")
+        print("刪除階段結束")
 
 
-        if mode in {"3", "4"}:
+    if mode != "0":
+        print()
+        print("取消自動Windows服務")
 
-            powershell_cmd = f"Get-AppxProvisionedPackage -Online | Where-Object {{ $_.DisplayName -eq '{package}' -or $_.PackageName -like '*{package}*' }} | Remove-AppxProvisionedPackage -Online"
 
-            result = subprocess.run(
-                [
-                    "powershell", "-NoProfile", "-Command",
-                    powershell_cmd,
-                ],
-                capture_output=True,
-                text=True,
-            )
+        services_now = get_services()
+
+        
+        for service_name, display_name, evaluation in SERVICES:
+
+            if service_name.lower() not in services_now:
+                print(f"未發現服務: {service_name}")
+
+        
+        for service_name, display_name, evaluation in SERVICES:
+
+            if service_name.lower() not in services_now:
+                continue
+
+
+            if services_now[service_name.lower()]["StartMode"] != "Auto":
+                continue
+
+
+            if not ask_yes_no(display_name, evaluation, "設為手動"):
+                continue
+
+
+            result = set_service_startup(service_name, "Manual")
+
 
             if result.returncode == 0:
-                print(f"已從預裝清單移除: {name}")
+                print(f"已取消自動: {service_name}")
 
             else:
-                print(f"從預裝清單移除失敗: {name}")
+                print(f"取消自動失敗: {service_name}")
                 if result.stderr.strip():
                     print(f" > {result.stderr.strip()}")
 
@@ -269,6 +410,9 @@ if __name__ == "__main__":
     input("Enter..")
 
 
+# 取得所有套件名稱
+# powershell_cmd = "Get-AppxPackage | Select-Object -ExpandProperty Name"
+
 # # 移除
 # powershell_cmd = f"Get-AppxPackage '{package}' | Remove-AppxPackage"
 
@@ -277,3 +421,9 @@ if __name__ == "__main__":
 
 # # 從系統預裝套件清單移除 (系統管理員)
 # powershell_cmd = f"Get-AppxProvisionedPackage -Online | Where-Object {{ $_.DisplayName -eq '{package}' }} | Remove-AppxProvisionedPackage -Online"
+
+# 取得 Windows 服務資訊
+# powershell_cmd = "Get-CimInstance Win32_Service | Select-Object Name, DisplayName, State, StartMode | ConvertTo-Json -Compress"
+
+# 修改服務啟動類型 (Manual / Disabled / Automatic)
+# powershell_cmd = f"Set-Service -Name '{service_name}' -StartupType {startup_type} -ErrorAction Stop"
