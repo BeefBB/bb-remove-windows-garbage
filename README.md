@@ -10,6 +10,10 @@
 - 可選從系統預裝套件移除
 - 可選取消自動Windows服務
 
+### 截圖
+
+![截圖](./assets/screenshot.png)
+
 # 下載
 
 ### 到 Releases 下載最新版
