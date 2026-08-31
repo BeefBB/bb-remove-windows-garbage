@@ -416,8 +416,14 @@ if __name__ == "__main__":
 
     if mode != "0":
 
+        time.sleep(1)
+
+
         print()
         print("取消自動Windows服務")
+
+
+        time.sleep(1)
 
 
         services_now = get_services()
