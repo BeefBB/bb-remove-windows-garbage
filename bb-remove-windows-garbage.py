@@ -130,6 +130,14 @@ SERVICES = [
     ("XboxNetApiSvc", "Xbox Live 網路服務", "垃圾"),
     ("RemoteRegistry", "遠端登錄", "用不到"),
 
+    ("WerSvc", "Windows Error Reporting (錯誤報告)", "垃圾"),
+    ("PcaSvc", "Program Compatibility Assistant (相容性助理)", "用不到"),
+    ("lfsvc", "Geolocation Service (地理位置服務)", "留著好"),
+    ("Wisvc", "Windows Insider Service (測試員服務)", "垃圾"),
+    ("TouchKeyboardHandwriting", "Touch Keyboard and Handwriting Panel (觸控與手寫面板)", "桌機用不到"),
+    ("SSDPSRV", "SSDP Discovery (UPnP 裝置搜尋)", "用不到"),
+    ("lmhosts", "TCP/IP NetBIOS Helper (舊版網路名稱解析)", "用不到"),
+
 ]
 
 
@@ -391,7 +399,14 @@ if __name__ == "__main__":
         for service_name, display_name, evaluation in SERVICES:
 
             if service_name.lower() not in services_now:
-                print(f"未發現服務: {service_name}")
+                print(f"未發現服務: {display_name}")
+                continue
+
+            if services_now[service_name.lower()]["StartMode"] == "Manual":
+                print(f"已經為手動: {display_name}")
+
+            if services_now[service_name.lower()]["StartMode"] == "Disabled":
+                print(f"已經為停用: {display_name}")
 
 
         for service_name, display_name, evaluation in SERVICES:
