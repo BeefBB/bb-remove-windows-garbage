@@ -7,7 +7,7 @@ import time
 
 APPS = [
 
-    # (package, name, evaluation, fuzzy search?)
+    # (package, name, evaluation)
 
     # Bing
     ("Microsoft.BingNews", "Microsoft 新聞", "垃圾"),
