@@ -7,7 +7,7 @@ import time
 
 APPS = [
 
-    # (package, name, evaluation)
+    # (package, name, evaluation, fuzzy search?)
 
     # Bing
     ("Microsoft.BingNews", "Microsoft 新聞", "垃圾"),
@@ -49,6 +49,7 @@ APPS = [
     # 通訊
     ("Microsoft.SkypeApp", "Skype", "垃圾"),
     ("Microsoft.MicrosoftTeams", "Microsoft Teams", "我通常刪掉後自己裝"),
+    ("MSTeams", "Microsoft Teams", "我通常刪掉後自己裝"),
     ("Microsoft.Messaging", "訊息", "垃圾"),
     ("Microsoft.MicrosoftJournal", "Microsoft Journal", "垃圾"),
     ("Microsoft.Windows.Mail", "郵件與行事曆", "垃圾"),
@@ -100,18 +101,15 @@ APPS = [
 
     # 第三方 App
     ("CandyCrushSaga", "Candy Crush Saga", "垃圾"),
-    ("King.com.CandyCrushSodaSaga", "Candy Crush Soda", "垃圾"),
     ("SpotifyAB.SpotifyMusic", "Spotify 預裝版", "垃圾"),
-    ("SpotifyAB.SpotifyMusic-for-Windows", "Spotify 預裝版", "垃圾"),
-    ("Disney.378537B5418F", "Disney+", "垃圾"),
     ("Disney", "Disney+", "垃圾"),
     ("Netflix", "Netflix", "垃圾"),
     ("TikTok", "TikTok", "垃圾"),
-    ("LinkedInApp", "LinkedIn", "垃圾"),
+    ("LinkedIn", "LinkedIn", "垃圾"),
     ("PrimeVideo", "Amazon Prime Video", "垃圾"),
     ("Instagram", "Instagram", "垃圾"),
     ("Facebook", "Facebook", "垃圾"),
-    ("AdobeSystemsIncorporated.AdobePhotoshopExpress", "Adobe Photoshop Express", "垃圾"),
+    ("AdobePhotoshopExpress", "Adobe Photoshop Express", "垃圾"),
 
 ]
 
@@ -175,7 +173,7 @@ def is_admin() -> bool:
         return False
 
 
-def ask_yes_no(name: str, evaluation: str="", action_text="") -> bool:
+def ask_yes_no(name: str, evaluation: str="", installed_package: str="", action_text="") -> bool:
     """
     詢問是否刪除
     """
@@ -183,12 +181,36 @@ def ask_yes_no(name: str, evaluation: str="", action_text="") -> bool:
     evaluation_text = f" ({evaluation})" if evaluation else ""
 
     print()
-    value = input(
-        f"{action_text}: {name}{evaluation_text} ( y / N )\n"
-        " > "
-    ).strip().lower()
+    print(f"{action_text}: {name}{evaluation_text}")
+
+    if installed_package:
+        print(f"套件: {installed_package}")
+
+    value = input(" > ( y / N ): ").strip().lower()
 
     return value == "y"
+
+
+def find_installed_package(target: str, installed_packages: set[str]) -> str | None:
+    """
+    搜尋已安裝套件, 先精確比對, 找不到才模糊比對
+
+    Return:
+        找到的套件名稱, 找不到則 None
+    """
+
+    target = target.lower()
+
+
+    if target in installed_packages:
+        return target
+
+    for installed in installed_packages:
+        if target in installed:
+            return installed
+
+
+    return None
 
 
 def get_installed_packages() -> set[str]:
@@ -367,25 +389,29 @@ if __name__ == "__main__":
         # 為了把未安裝全放前面
         for package, name, evaluation in APPS:
 
-            if package.lower() not in installed_packages:
+            installed_package = find_installed_package(package, installed_packages)
+
+            if not installed_package:
                 print(f"未安裝: {name}")
 
 
         for package, name, evaluation in APPS:
 
-            if package.lower() not in installed_packages:
+            installed_package = find_installed_package(package, installed_packages)
+
+            if not installed_package:
                 continue
 
 
-            if not ask_yes_no(name, evaluation, "移除"):
+            if not ask_yes_no(name, evaluation, installed_package, "移除"):
                 continue
 
 
             if mode in {"0", "1", "3"}:
-                result = remove_app(package, False)
+                result = remove_app(installed_package, False)
 
             else:
-                result = remove_app(package, True)
+                result = remove_app(installed_package, True)
 
 
             if result.returncode == 0:
@@ -399,7 +425,7 @@ if __name__ == "__main__":
 
             if mode in {"3", "4"}:
 
-                result = remove_app_from_pre_installed_packages(package)
+                result = remove_app_from_pre_installed_packages(installed_package)
 
                 if result.returncode == 0:
                     print(f"已從預裝清單移除: {name}")
@@ -452,7 +478,7 @@ if __name__ == "__main__":
                 continue
 
 
-            if not ask_yes_no(display_name, evaluation, "設為手動"):
+            if not ask_yes_no(display_name, evaluation, "", "設為手動"):
                 continue
 
 
